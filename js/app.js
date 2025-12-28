@@ -1,7 +1,13 @@
 (() => {
     const CART_KEY = "melagrano_cart";
-    const USER_KEY = "melagrano_user";
-    const AUTH_KEY = "melagrano_auth";
+
+    // NEW: users storage + current user pointer
+    const USERS_KEY = "melagrano_users";          // { [email]: userObj }
+    const AUTH_KEY = "melagrano_auth";            // "true"/null
+    const AUTH_USER_KEY = "melagrano_auth_user";  // current email
+
+    // legacy (for migration)
+    const LEGACY_USER_KEY = "melagrano_user";
 
     const RETURN_TO_KEY = "melagrano_return_to";
     const FLASH_KEY = "melagrano_flash";
@@ -19,24 +25,102 @@
     const isCartPage = () => Boolean(qs(".cart"));
     const isProfilePage = () => Boolean(qs(".profile"));
 
-    /* ===================== AUTH ===================== */
+    /* ===================== USERS / AUTH ===================== */
 
-    const getUser = () => {
-        try { return JSON.parse(localStorage.getItem(USER_KEY)); }
-        catch { return null; }
+    const safeJsonParse = (raw, fallback) => {
+        try { return JSON.parse(raw); } catch { return fallback; }
     };
 
-    const saveUser = (user) => localStorage.setItem(USER_KEY, JSON.stringify(user));
+    const getUsers = () => {
+        const obj = safeJsonParse(localStorage.getItem(USERS_KEY), {});
+        return obj && typeof obj === "object" ? obj : {};
+    };
 
-    const isAuthorized = () =>
-        localStorage.getItem(AUTH_KEY) === "true" && !!getUser();
+    const setUsers = (users) => {
+        localStorage.setItem(USERS_KEY, JSON.stringify(users || {}));
+    };
 
-    const loginUser = () => localStorage.setItem(AUTH_KEY, "true");
+    const getCurrentUserKey = () => {
+        const k = (localStorage.getItem(AUTH_USER_KEY) || "").trim().toLowerCase();
+        return k || "";
+    };
+
+    const setCurrentUserKey = (email) => {
+        localStorage.setItem(AUTH_USER_KEY, String(email || "").trim().toLowerCase());
+    };
+
+    const clearCurrentUserKey = () => {
+        localStorage.removeItem(AUTH_USER_KEY);
+    };
+
+    const getUserByKey = (email) => {
+        if (!email) return null;
+        const users = getUsers();
+        const u = users[email.toLowerCase()];
+        return u && typeof u === "object" ? u : null;
+    };
+
+    const saveUserByKey = (email, user) => {
+        if (!email) return false;
+        const users = getUsers();
+        users[email.toLowerCase()] = user;
+        setUsers(users);
+        return true;
+    };
+
+    const deleteUserByKey = (email) => {
+        if (!email) return;
+        const users = getUsers();
+        delete users[email.toLowerCase()];
+        setUsers(users);
+    };
+
+    const getUser = () => {
+        const email = getCurrentUserKey();
+        return getUserByKey(email);
+    };
+
+    const isAuthorized = () => {
+        if (localStorage.getItem(AUTH_KEY) !== "true") return false;
+        const email = getCurrentUserKey();
+        return !!email && !!getUserByKey(email);
+    };
+
+    const loginUser = (email) => {
+        localStorage.setItem(AUTH_KEY, "true");
+        setCurrentUserKey(email);
+    };
 
     const logoutUser = () => {
         localStorage.removeItem(AUTH_KEY);
+        clearCurrentUserKey();
         window.location.href = "login.html";
     };
+
+    /* ---------- migration from legacy single-user storage ---------- */
+    function migrateLegacyUserIfNeeded() {
+        const already = localStorage.getItem(USERS_KEY);
+        if (already) return;
+
+        const legacy = safeJsonParse(localStorage.getItem(LEGACY_USER_KEY), null);
+        if (!legacy || typeof legacy !== "object") return;
+
+        const email = String(legacy.email || "").trim().toLowerCase();
+        if (!email) return;
+
+        // create users map
+        const users = {};
+        users[email] = legacy;
+        setUsers(users);
+
+        // if legacy auth existed, set current user
+        if (localStorage.getItem(AUTH_KEY) === "true") {
+            setCurrentUserKey(email);
+        }
+
+        // keep legacy data (optional) - you can remove it if you want
+        // localStorage.removeItem(LEGACY_USER_KEY);
+    }
 
     /* ===================== CART STORAGE ===================== */
 
@@ -280,14 +364,16 @@
     }
 
     function saveOrderToUser(order) {
-        const user = getUser();
+        const email = getCurrentUserKey();
+        if (!email) return false;
+
+        const user = getUserByKey(email);
         if (!user) return false;
 
         if (!Array.isArray(user.orders)) user.orders = [];
         user.orders.unshift(order);
 
-        saveUser(user);
-        return true;
+        return saveUserByKey(email, user);
     }
 
     function initCheckout() {
@@ -298,7 +384,6 @@
 
         btn.addEventListener("click", () => {
             const cart = getCart();
-
             if (cart.length === 0) return;
 
             if (!isAuthorized()) {
@@ -362,7 +447,9 @@
 
             errorBox?.classList.add("is-hidden");
 
-            const email = qs('input[type="email"]')?.value.trim() || "";
+            const emailRaw = qs('input[type="email"]')?.value.trim() || "";
+            const email = emailRaw.toLowerCase();
+
             const name = qs('input[type="text"]')?.value.trim() || "";
             const phone = qs('input[type="tel"]')?.value.trim() || "";
 
@@ -391,14 +478,26 @@
                 return;
             }
 
-            const prev = getUser();
-            const orders = Array.isArray(prev?.orders) ? prev.orders : [];
+            const users = getUsers();
+            const existing = users[email];
 
-            saveUser({ email, name, phone, password: p1, orders });
-            loginUser();
+            const orders = Array.isArray(existing?.orders) ? existing.orders : [];
+            const user = { email, name, phone, password: p1, orders };
+
+            saveUserByKey(email, user);
+            loginUser(email);
+
+            const back = localStorage.getItem(RETURN_TO_KEY);
+            if (back) {
+                localStorage.removeItem(RETURN_TO_KEY);
+                window.location.href = back;
+                return;
+            }
+
             window.location.href = "profile.html";
         });
     }
+
 
     /* ===================== LOGIN ===================== */
 
@@ -413,10 +512,10 @@
 
             errorBox?.classList.add("is-hidden");
 
-            const email = qs('input[type="email"]')?.value.trim() || "";
+            const email = (qs('input[type="email"]')?.value.trim() || "").toLowerCase();
             const password = qs('input[type="password"]')?.value || "";
 
-            const user = getUser();
+            const user = getUserByKey(email);
 
             if (!user || user.email !== email || user.password !== password) {
                 if (errorBox) {
@@ -426,7 +525,7 @@
                 return;
             }
 
-            loginUser();
+            loginUser(email);
 
             const back = localStorage.getItem(RETURN_TO_KEY);
             if (back) {
@@ -491,7 +590,8 @@
             return;
         }
 
-        const user = getUser();
+        const email = getCurrentUserKey();
+        const user = getUserByKey(email);
         if (!user) return;
 
         const fields = qsa(".profile-fields .field");
@@ -513,7 +613,6 @@
         const nameRow = nameInput?.closest(".profile-row") || null;
         let nameBtn = nameRow ? qs(".field-btn", nameRow) : null;
 
-        // если в HTML у имени не было кнопки — создадим (без правок HTML)
         if (nameRow && !nameBtn) {
             nameBtn = document.createElement("button");
             nameBtn.type = "button";
@@ -563,13 +662,13 @@
 
                 if (!raw) {
                     user.name = "";
-                    saveUser(user);
+                    saveUserByKey(email, user);
                     setNameViewMode();
                     return;
                 }
 
                 user.name = raw;
-                saveUser(user);
+                saveUserByKey(email, user);
                 setNameViewMode();
             });
         }
@@ -634,7 +733,7 @@
                 }
 
                 user.phone = raw;
-                saveUser(user);
+                saveUserByKey(email, user);
                 setPhoneViewMode();
             });
         }
@@ -667,7 +766,7 @@
             }
 
             user.password = newPass;
-            saveUser(user);
+            saveUserByKey(email, user);
 
             passInputs.forEach(i => i.value = "");
             alert("Пароль успешно изменён");
@@ -704,6 +803,8 @@
     /* ===================== INIT ===================== */
 
     document.addEventListener("DOMContentLoaded", () => {
+        migrateLegacyUserIfNeeded();
+
         if (isCatalogPage()) {
             renderCatalogFromAPI();
         }
