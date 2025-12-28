@@ -3,6 +3,9 @@
     const USER_KEY = "melagrano_user";
     const AUTH_KEY = "melagrano_auth";
 
+    const RETURN_TO_KEY = "melagrano_return_to";
+    const FLASH_KEY = "melagrano_flash";
+
     const API_URL = "https://dummyjson.com/products?limit=50";
     const USD_TO_RUB = 95;
 
@@ -54,6 +57,15 @@
     };
 
     const setCart = (cart) => localStorage.setItem(CART_KEY, JSON.stringify(cart));
+
+    /* ===================== FLASH ===================== */
+
+    const setFlash = (text) => localStorage.setItem(FLASH_KEY, String(text || ""));
+    const popFlash = () => {
+        const t = localStorage.getItem(FLASH_KEY);
+        if (t) localStorage.removeItem(FLASH_KEY);
+        return t || "";
+    };
 
     /* ===================== PHONE MASK ===================== */
 
@@ -139,7 +151,6 @@
             data.products.forEach((product) => {
                 const key = `api_${product.id}`;
                 const inCart = keysInCart.has(key);
-
                 const priceRub = toRub(product.price);
 
                 const card = document.createElement("article");
@@ -199,11 +210,15 @@
         title.textContent = `КОРЗИНА (${count})`;
     }
 
-    function renderEmptyCart(list) {
+    function renderEmptyCart(list, successMessage = "") {
+        const isSuccess = Boolean(successMessage && successMessage.trim());
+
         list.innerHTML = `
             <div class="cart-empty">
-                <p class="cart-empty__title">Ваша корзина пуста</p>
-                <a class="cart-empty__link" href="index.html">За покупками →</a>
+                <p class="cart-empty__title">${isSuccess ? successMessage : "Ваша корзина пуста"}</p>
+                <a class="cart-empty__link" href="index.html">
+                    ${isSuccess ? "Продолжить покупки →" : "За покупками →"}
+                </a>
             </div>
         `;
 
@@ -216,14 +231,14 @@
         if (btn) btn.disabled = true;
     }
 
-    function renderCart() {
+    function renderCart(successMessage = "") {
         const list = qs(".cart-list");
         if (!list) return;
 
         const cart = getCart();
 
         if (cart.length === 0) {
-            renderEmptyCart(list);
+            renderEmptyCart(list, successMessage);
             return;
         }
 
@@ -247,10 +262,73 @@
         setCartTitle(cart.length);
     }
 
+    function createOrderFromCart(cart) {
+        const total = cart.reduce((s, x) => s + (Number(x.price) || 0), 0);
+        const id = Math.floor(1000 + Math.random() * 9000);
+
+        const pad2 = (n) => String(n).padStart(2, "0");
+        const d = new Date();
+        const date = `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+
+        return {
+            id: `#${id}`,
+            date,
+            status: "Оформлен",
+            total,
+            items: cart.map(x => ({ title: x.title, price: x.price, key: x.key })),
+        };
+    }
+
+    function saveOrderToUser(order) {
+        const user = getUser();
+        if (!user) return false;
+
+        if (!Array.isArray(user.orders)) user.orders = [];
+        user.orders.unshift(order);
+
+        saveUser(user);
+        return true;
+    }
+
+    function initCheckout() {
+        if (!isCartPage()) return;
+
+        const btn = qs(".cart-summary__btn");
+        if (!btn) return;
+
+        btn.addEventListener("click", () => {
+            const cart = getCart();
+
+            if (cart.length === 0) return;
+
+            if (!isAuthorized()) {
+                localStorage.setItem(RETURN_TO_KEY, "cart.html");
+                window.location.href = "login.html";
+                return;
+            }
+
+            const order = createOrderFromCart(cart);
+            const ok = saveOrderToUser(order);
+
+            if (!ok) {
+                localStorage.setItem(RETURN_TO_KEY, "cart.html");
+                window.location.href = "login.html";
+                return;
+            }
+
+            setCart([]);
+            setFlash("Заказ успешно оформлен");
+
+            renderCart(popFlash());
+            syncCatalogButtons();
+        });
+    }
+
     function initCart() {
         if (!isCartPage()) return;
 
-        renderCart();
+        const flash = popFlash();
+        renderCart(flash);
 
         qs(".cart-list")?.addEventListener("click", (e) => {
             const removeBtn = e.target.closest(".cart-item__remove");
@@ -266,6 +344,8 @@
             renderCart();
             syncCatalogButtons();
         });
+
+        initCheckout();
     }
 
     /* ===================== REGISTRATION ===================== */
@@ -311,7 +391,10 @@
                 return;
             }
 
-            saveUser({ email, name, phone, password: p1 });
+            const prev = getUser();
+            const orders = Array.isArray(prev?.orders) ? prev.orders : [];
+
+            saveUser({ email, name, phone, password: p1, orders });
             loginUser();
             window.location.href = "profile.html";
         });
@@ -344,11 +427,61 @@
             }
 
             loginUser();
+
+            const back = localStorage.getItem(RETURN_TO_KEY);
+            if (back) {
+                localStorage.removeItem(RETURN_TO_KEY);
+                window.location.href = back;
+                return;
+            }
+
             window.location.href = "profile.html";
         });
     }
 
-    /* ===================== PROFILE ===================== */
+    /* ===================== PROFILE (DATA + ORDERS) ===================== */
+
+    function renderOrders(container, orders) {
+        if (!container) return;
+
+        if (!orders || !orders.length) {
+            container.innerHTML = `
+                <div class="cart-empty">
+                    <p class="cart-empty__title">Заказов пока нет</p>
+                    <a class="cart-empty__link" href="index.html">Перейти в каталог →</a>
+                </div>
+            `;
+            return;
+        }
+
+        const take = orders;
+
+        container.innerHTML = take.map((o) => {
+            const count = Array.isArray(o.items) ? o.items.length : 0;
+
+            let oneLine = "";
+            if (count === 1) {
+                oneLine = `1 товар: ${o.items[0]?.title || "товар"}`;
+            } else if (count > 1) {
+                const titles = o.items.slice(0, 3).map(x => x.title).filter(Boolean);
+                oneLine = `${count} товара: ${titles.join(", ")}${count > 3 ? "…" : ""}`;
+            } else {
+                oneLine = "Товары: —";
+            }
+
+            return `
+                <article class="order">
+                    <div class="order-main">
+                        <span class="order-id">Заказ ${o.id}</span>
+                        <span class="order-date">${o.date || ""}</span>
+                        <span class="order-status">${o.status || "Оформлен"}</span>
+                        <span class="order-sum">${formatRub(o.total || 0)}</span>
+                    </div>
+                    <div class="order-items">${oneLine}</div>
+                </article>
+            `;
+        }).join("");
+    }
 
     function initProfile() {
         if (!isProfilePage()) return;
@@ -366,13 +499,87 @@
         const emailInput = fields[1] || null;
         const phoneInput = fields[2] || null;
 
-        if (nameInput) nameInput.value = user.name || "";
-        if (emailInput) emailInput.value = user.email || "";
-
-        const phoneRow = phoneInput?.closest(".profile-row") || null;
-        const addBtn = phoneRow ? qs(".field-btn", phoneRow) : null;
+        if (emailInput) {
+            emailInput.value = user.email || "";
+            emailInput.type = "email";
+            emailInput.classList.add("field--readonly");
+            emailInput.readOnly = true;
+        }
 
         const PHONE_REGEX = /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/;
+
+        /* ---------- NAME (edit like phone, but always available) ---------- */
+
+        const nameRow = nameInput?.closest(".profile-row") || null;
+        let nameBtn = nameRow ? qs(".field-btn", nameRow) : null;
+
+        // если в HTML у имени не было кнопки — создадим (без правок HTML)
+        if (nameRow && !nameBtn) {
+            nameBtn = document.createElement("button");
+            nameBtn.type = "button";
+            nameBtn.className = "btn field-btn";
+            nameRow.appendChild(nameBtn);
+        }
+
+        function setNameViewMode() {
+            if (!nameInput || !nameBtn) return;
+
+            nameInput.type = "text";
+            nameInput.classList.add("field--readonly");
+            nameInput.readOnly = true;
+
+            const hasName = Boolean(user.name && user.name.trim());
+            nameInput.value = hasName ? user.name : "не указан";
+
+            nameBtn.style.display = "inline-block";
+            nameBtn.textContent = hasName ? "Изменить" : "Добавить";
+            nameBtn.dataset.mode = "edit";
+        }
+
+        function setNameEditMode() {
+            if (!nameInput || !nameBtn) return;
+
+            nameInput.type = "text";
+            nameInput.classList.remove("field--readonly");
+            nameInput.readOnly = false;
+
+            nameInput.value = user.name || "";
+            nameInput.focus();
+
+            nameBtn.textContent = "Сохранить";
+            nameBtn.dataset.mode = "save";
+        }
+
+        if (nameBtn && nameInput) {
+            nameBtn.addEventListener("click", () => {
+                const mode = nameBtn.dataset.mode || "edit";
+
+                if (mode === "edit") {
+                    setNameEditMode();
+                    return;
+                }
+
+                const raw = (nameInput.value || "").trim();
+
+                if (!raw) {
+                    user.name = "";
+                    saveUser(user);
+                    setNameViewMode();
+                    return;
+                }
+
+                user.name = raw;
+                saveUser(user);
+                setNameViewMode();
+            });
+        }
+
+        setNameViewMode();
+
+        /* ---------- PHONE (existing logic) ---------- */
+
+        const phoneRow = phoneInput?.closest(".profile-row") || null;
+        const phoneBtn = phoneRow ? qs(".field-btn", phoneRow) : null;
 
         function setPhoneViewMode() {
             if (!phoneInput) return;
@@ -384,10 +591,10 @@
             const hasPhone = Boolean(user.phone && user.phone.trim());
             phoneInput.value = hasPhone ? user.phone : "не указан";
 
-            if (addBtn) {
-                addBtn.style.display = hasPhone ? "none" : "inline-block";
-                addBtn.textContent = "Добавить";
-                addBtn.dataset.mode = "add";
+            if (phoneBtn) {
+                phoneBtn.style.display = hasPhone ? "none" : "inline-block";
+                phoneBtn.textContent = "Добавить";
+                phoneBtn.dataset.mode = "add";
             }
         }
 
@@ -401,18 +608,18 @@
             phoneInput.value = user.phone || "+7 ";
             phoneInput.focus();
 
-            if (addBtn) {
-                addBtn.style.display = "inline-block";
-                addBtn.textContent = "Сохранить";
-                addBtn.dataset.mode = "save";
+            if (phoneBtn) {
+                phoneBtn.style.display = "inline-block";
+                phoneBtn.textContent = "Сохранить";
+                phoneBtn.dataset.mode = "save";
             }
 
             applyPhoneMaskToInput(phoneInput);
         }
 
-        if (addBtn && phoneInput) {
-            addBtn.addEventListener("click", () => {
-                const mode = addBtn.dataset.mode || "add";
+        if (phoneBtn && phoneInput) {
+            phoneBtn.addEventListener("click", () => {
+                const mode = phoneBtn.dataset.mode || "add";
 
                 if (mode === "add") {
                     setPhoneEditMode();
@@ -434,7 +641,11 @@
 
         setPhoneViewMode();
 
+        /* ---------- logout ---------- */
+
         qs(".profile-logout")?.addEventListener("click", logoutUser);
+
+        /* ---------- change password ---------- */
 
         const passForm = qs(".password-form");
         passForm?.addEventListener("submit", (e) => {
@@ -461,6 +672,12 @@
             passInputs.forEach(i => i.value = "");
             alert("Пароль успешно изменён");
         });
+
+        /* ---------- orders ---------- */
+
+        const ordersHost = qs(".orders");
+        const orders = Array.isArray(user.orders) ? user.orders : [];
+        renderOrders(ordersHost, orders);
     }
 
     /* ===================== NAVIGATION ===================== */

@@ -428,7 +428,6 @@ html, body {
 .profile-fields {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
 .profile-row {
@@ -458,7 +457,6 @@ html, body {
 .password-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
     flex: 1;
     margin: 0;
 }
@@ -471,7 +469,7 @@ html, body {
 
 .profile-logout {
     width: 100%;
-    margin-top: auto;
+    margin-top: 20px;
     padding: 11px 14px;
 }
 
@@ -489,8 +487,8 @@ html, body {
 
 .order-main {
     display: grid;
-    grid-template-columns: 1fr 120px 120px 110px;
-    gap: 10px;
+    grid-template-columns: 1fr 120px 60px 110px;
+    gap: 40px;
     align-items: center;
 }
 
@@ -562,6 +560,16 @@ html, body {
 
     .cart__right {
         margin-top: 0;
+    }
+
+    .cart-message{
+        margin: 0 0 14px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(42, 138, 59, 0.35);
+        background: rgba(42, 138, 59, 0.06);
+        color: #2a8a3b;
+        font-weight: 800;
     }
 
     .profile-grid {
