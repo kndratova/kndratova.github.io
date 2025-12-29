@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Melagrano — Корзина</title>
+    <link rel="stylesheet" href="../style.css" />
+    <script src="../js/app.js" defer></script>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <img src="../imgs/melagrano_logo.png" alt="Melagrano">
+    </div>
+
+    <nav class="nav">
+        <a class="nav__link" data-page="index.html">Каталог</a>
+        <a class="nav__link" data-page="cart.html">Корзина</a>
+        <a class="nav__link" data-page="profile.html">Личный кабинет</a>
+    </nav>
+
+</header>
+
+<main class="container">
+    <section class="cart">
+
+        <div class="cart__left">
+            <div class="cart-head">
+                <h3 class="cart-title">Товары в корзине (0)</h3>
+            </div>
+
+            <!-- важно: контейнер пустой, товары рисует JS -->
+            <div class="cart-list"></div>
+        </div>
+
+        <aside class="cart__right">
+            <div class="cart-summary">
+                <p class="cart-summary__label">Итого</p>
+                <p class="cart-summary__total"><span>0 ₽</span></p>
+                <button class="btn btn--primary cart-summary__btn" type="button">Оформить заказ</button>
+                <p class="cart-summary__note">Доставка и скидки рассчитываются при оформлении</p>
+            </div>
+        </aside>
+
+    </section>
+</main>
+
+</body>
+</html>

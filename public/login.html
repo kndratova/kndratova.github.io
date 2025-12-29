@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melagrano — Вход</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <img src="../imgs/melagrano_logo.png" alt="Melagrano">
+    </div>
+
+    <nav class="nav">
+        <a class="nav__link" data-page="index.html">Каталог</a>
+        <a class="nav__link" data-page="cart.html">Корзина</a>
+        <a class="nav__link" data-page="profile.html">Личный кабинет</a>
+    </nav>
+
+</header>
+
+<main class="container">
+
+    <section class="auth">
+        <div class="auth-head">
+            <h3 class="auth-title">Вход</h3>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-error is-hidden">
+                Ошибка: неверная почта или пароль
+            </div>
+
+            <form class="auth-form" action="#" method="post">
+                <input class="field" type="email" placeholder="Электронная почта" required>
+                <input class="field" type="password" placeholder="Пароль" required>
+
+                <button class="btn btn--primary auth-btn" type="submit">Войти</button>
+
+                <div class="auth-links">
+                    <a class="auth-link" href="register.html">Регистрация</a>
+                    <a class="auth-link auth-link--accent" href="#">Забыли пароль?</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+</main>
+<script src="../js/app.js" defer></script>
+</body>
+</html>

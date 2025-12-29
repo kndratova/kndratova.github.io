@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melagrano — Регистрация</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <img src="../imgs/melagrano_logo.png" alt="Melagrano">
+    </div>
+
+    <nav class="nav">
+        <a class="nav__link" data-page="index.html">Каталог</a>
+        <a class="nav__link" data-page="cart.html">Корзина</a>
+        <a class="nav__link" data-page="profile.html">Личный кабинет</a>
+    </nav>
+
+</header>
+
+<main class="container">
+
+    <section class="auth">
+        <div class="auth-head">
+            <h3 class="auth-title">Регистрация</h3>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-error is-hidden">
+                Ошибка: проверьте корректность заполнения полей
+            </div>
+
+            <form class="auth-form" action="#" method="post">
+                <input class="field" type="email" placeholder="Электронная почта" required>
+                <input class="field" type="text" placeholder="Имя">
+                <input class="field" type="tel" placeholder="Телефон">
+                <input class="field" type="password" placeholder="Пароль" required>
+                <input class="field" type="password" placeholder="Повторите пароль" required>
+
+                <button class="btn btn--primary auth-btn" type="submit">Зарегистрироваться</button>
+
+                <div class="auth-links">
+                    <a class="auth-link auth-link--accent" href="login.html">← Назад ко входу</a>
+                </div>
+
+            </form>
+        </div>
+    </section>
+
+</main>
+<script src="../js/app.js" defer></script>
+</body>
+</html>

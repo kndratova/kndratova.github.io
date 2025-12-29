@@ -435,14 +435,14 @@
 
     /* ===================== REGISTRATION ===================== */
 
-    function initRegister() {
+    async function initRegister() {
         const form = qs(".auth-form");
         if (!form || !document.title.includes("Регистрация")) return;
 
         const errorBox = qs(".auth-error");
         const PHONE_REGEX = /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/;
 
-        form.addEventListener("submit", (e) => {
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             errorBox?.classList.add("is-hidden");
@@ -478,36 +478,42 @@
                 return;
             }
 
-            const users = getUsers();
-            const existing = users[email];
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: p1, name, phone })
+                });
 
-            const orders = Array.isArray(existing?.orders) ? existing.orders : [];
-            const user = { email, name, phone, password: p1, orders };
+                if (!response.ok) throw new Error('Ошибка регистрации');
 
-            saveUserByKey(email, user);
-            loginUser(email);
+                loginUser(email);
 
-            const back = localStorage.getItem(RETURN_TO_KEY);
-            if (back) {
-                localStorage.removeItem(RETURN_TO_KEY);
-                window.location.href = back;
-                return;
+                const back = localStorage.getItem(RETURN_TO_KEY);
+                if (back) {
+                    localStorage.removeItem(RETURN_TO_KEY);
+                    window.location.href = back;
+                    return;
+                }
+
+                window.location.href = "profile.html";
+            } catch (error) {
+                showError("Ошибка на сервере. Попробуйте позже.");
             }
-
-            window.location.href = "profile.html";
         });
     }
 
 
+
     /* ===================== LOGIN ===================== */
 
-    function initLogin() {
+    async function initLogin() {
         const form = qs(".auth-form");
         if (!form || !document.title.includes("Вход")) return;
 
         const errorBox = qs(".auth-error");
 
-        form.addEventListener("submit", (e) => {
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             errorBox?.classList.add("is-hidden");
@@ -515,28 +521,37 @@
             const email = (qs('input[type="email"]')?.value.trim() || "").toLowerCase();
             const password = qs('input[type="password"]')?.value || "";
 
-            const user = getUserByKey(email);
+            try {
+                const response = await fetch('http://localhost:63342/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-            if (!user || user.email !== email || user.password !== password) {
+
+                if (!response.ok) {
+                    throw new Error("Неверная почта или пароль");
+                }
+
+                loginUser(email);
+
+                const back = localStorage.getItem(RETURN_TO_KEY);
+                if (back) {
+                    localStorage.removeItem(RETURN_TO_KEY);
+                    window.location.href = back;
+                    return;
+                }
+
+                window.location.href = "profile.html";
+            } catch (error) {
                 if (errorBox) {
-                    errorBox.textContent = "Ошибка: неверная почта или пароль";
+                    errorBox.textContent = "Ошибка: " + error.message;
                     errorBox.classList.remove("is-hidden");
                 }
-                return;
             }
-
-            loginUser(email);
-
-            const back = localStorage.getItem(RETURN_TO_KEY);
-            if (back) {
-                localStorage.removeItem(RETURN_TO_KEY);
-                window.location.href = back;
-                return;
-            }
-
-            window.location.href = "profile.html";
         });
     }
+
 
     /* ===================== PROFILE (DATA + ORDERS) ===================== */
 
