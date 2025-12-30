@@ -1,29 +1,26 @@
-
+const express = require('express');
 const bcrypt = require('bcrypt');
-const db = require('../db');
+const { db } = require('../db'); // Подключаем базу данных
+const { SALT_ROUNDS } = require('../config'); // Конфигурация для соли
 
-module.exports = (req, res) => {
+const router = express.Router();
+
+router.post('/', (req, res) => {
     const { email, password, name, phone } = req.body;
 
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-        if (err) {
-            console.error('Ошибка хэширования пароля:', err);
-            return res.status(500).send('Ошибка сервера');
-        }
+    if (!email || !password) {
+        return res.status(400).send('Email и пароль обязательны');
+    }
 
-        console.log(hashedPassword);
-        db.query('SELECT * FROM users WHERE email = ?', [email], (err, result) => {
-            if (err) return res.status(500).send('Ошибка сервера');
-            if (result.length > 0) {
-                return res.status(400).send('Пользователь с таким email уже существует');
-            }
+    bcrypt.hash(password, SALT_ROUNDS, (err, hashedPassword) => {
+        if (err) return res.status(500).send('Ошибка хеширования пароля');
 
-            db.query('INSERT INTO users (email, password, name, phone) VALUES (?, ?, ?, ?)',
-                [email, hashedPassword, name, phone],
-                (err, result) => {
-                    if (err) return res.status(500).send('Ошибка сервера');
-                    res.status(201).send('Пользователь зарегистрирован');
-                });
+        const query = 'INSERT INTO users (email, password, name, phone) VALUES (?, ?, ?, ?)';
+        db.query(query, [email, hashedPassword, name, phone], (err) => {
+            if (err) return res.status(500).send('Ошибка при регистрации пользователя');
+            res.status(200).send('Пользователь успешно зарегистрирован');
         });
     });
-};
+});
+
+module.exports = router;

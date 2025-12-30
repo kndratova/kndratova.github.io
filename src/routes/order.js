@@ -1,13 +1,16 @@
+const express = require('express');
+const { db } = require('../db');
 
-const db = require('../db');
+const router = express.Router();
 
-module.exports = (req, res) => {
-    const { userId, items, total } = req.body;
+router.post('/', (req, res) => {
+    const { userId, orderDetails } = req.body;
 
-    db.query('INSERT INTO orders (user_id, items, total) VALUES (?, ?, ?)',
-        [userId, JSON.stringify(items), total],
-        (err, result) => {
-            if (err) return res.status(500).send('Ошибка сервера');
-            res.status(201).send('Заказ оформлен');
-        });
-};
+    const query = 'INSERT INTO orders (user_id, order_details) VALUES (?, ?)';
+    db.query(query, [userId, JSON.stringify(orderDetails)], (err) => {
+        if (err) return res.status(500).send('Ошибка при оформлении заказа');
+        res.status(200).send('Заказ оформлен');
+    });
+});
+
+module.exports = router;
