@@ -8,8 +8,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         await renderCatalog();
     }
 
+    if (document.body.classList.contains('cart-page')) {
+        renderCart();
+    }
+
+
     initNavigation();
-    renderCart();
 
     const logoutButton = document.querySelector(".profile-logout");
 
