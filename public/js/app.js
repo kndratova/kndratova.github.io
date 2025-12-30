@@ -1,5 +1,6 @@
 import { initNavigation } from './navigation.js';
 import { renderCatalog } from './catalog.js';
+import { renderCart } from './cart.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -8,6 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     initNavigation();
+    renderCart();
 
     const logoutButton = document.querySelector(".profile-logout");
 
