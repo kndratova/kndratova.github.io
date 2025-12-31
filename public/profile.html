@@ -1,87 +1,70 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melagrano — Личный кабинет</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Melagrano — Каталог</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script type="module" src="js/app.js" defer></script>
+    <script type="module" src="js/profile.js" defer></script>
 </head>
 <body class="profile-page">
-
 <header class="header">
     <div class="logo">
         <img src="images/melagrano_logo.png" alt="Melagrano">
     </div>
-
     <nav class="nav">
         <a class="nav__link" href="/">Каталог</a>
         <a class="nav__link" href="/cart">Корзина</a>
-        <a class="nav__link" href="/profile">Личный кабинет</a>
+        <a class="nav__link" href="/login">Вход</a>
     </nav>
-
 </header>
-
 <main class="container">
-
     <section class="profile">
         <div class="profile-head">
             <h3 class="profile-title">Личный кабинет</h3>
         </div>
-
         <div class="profile-grid">
 
             <section class="panel panel--stack">
-                <h4 class="panel-title">Личные данные</h4>
-
+                <div class="panel-head">
+                    <h4 class="panel-title">Личные данные</h4>
+                    <span class="panel-edit field-btn" role="button" tabindex="0">Изменить</span>
+                </div>
                 <div class="profile-fields">
-
                     <div class="profile-row">
                         <label class="profile-label">Имя</label>
-                        <input class="field field--readonly" type="text" value="Екатерина Алексеевна" readonly>
+                        <input class="field field--readonly" type="text" name="name" readonly>
                     </div>
-
                     <div class="profile-row">
                         <label class="profile-label">e-mail</label>
-                        <input class="field field--readonly" type="email" value="katiakondratova@gmail.com" readonly>
+                        <input class="field field--readonly" type="email" name="email" readonly>
                     </div>
-
                     <div class="profile-row">
                         <label class="profile-label">Телефон</label>
-                        <input class="field field--readonly" type="text" value="не указан" readonly>
-                        <button class="btn field-btn" type="button">Добавить</button>
+                        <input class="field field--readonly" type="text" name="phone" readonly>
                     </div>
-
                 </div>
-
                 <button class="btn profile-logout" type="button">
                     Выйти из аккаунта
                 </button>
             </section>
-
-
             <section class="panel panel--stack">
                 <h4 class="panel-title">Безопасность</h4>
-
                 <form class="password-form" action="#" method="post">
                     <input class="field" type="password" placeholder="Текущий пароль" required>
                     <input class="field" type="password" placeholder="Новый пароль" required>
                     <input class="field" type="password" placeholder="Повторите новый пароль" required>
-
                     <button class="btn btn--primary profile-save" type="submit">Сменить пароль</button>
                 </form>
             </section>
-
             <section class="panel panel--full">
                 <h4 class="panel-title">Заказы</h4>
-
                 <div class="orders">
                 </div>
             </section>
-
         </div>
     </section>
-
 </main>
-<script type="module" src="js/app.js" defer></script>
 </body>
 </html>

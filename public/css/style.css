@@ -612,4 +612,37 @@ html, body {
     .field-btn {
         width: fit-content;
     }
+
+    .panel-head{
+        display:flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .panel-head .panel-title{
+        margin: 0;
+    }
+
+    .panel-edit.field-btn{
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .panel-edit.field-btn:hover{
+        text-decoration: underline;
+    }
+
+    .panel-edit.field-btn:active{
+        opacity: 0.7;
+    }
+
 }

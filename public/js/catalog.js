@@ -11,7 +11,6 @@ export const renderCatalog = async () => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        console.log(data);
         const keysInCart = new Set(getCart().map((i) => i.key));
         const fragment = document.createDocumentFragment();
 
